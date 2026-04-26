@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600">
+    <defs>
+      <linearGradient id="g2" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#fdfbfb"/><stop offset="100%" stop-color="#ebedee"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="600" fill="url(#g2)"/>
+    <rect x="120" y="220" width="100" height="100" fill="none" stroke="#e67e22" stroke-width="6" opacity="0.7"/>
+    <rect x="180" y="280" width="100" height="100" fill="none" stroke="#d35400" stroke-width="6" opacity="0.7"/>
+    <text x="200" y="160" font-family="'Georgia', serif" font-size="38" font-weight="bold" fill="#2c3e50" text-anchor="middle" letter-spacing="2">THE FOUR</text>
+    <text x="200" y="210" font-family="'Georgia', serif" font-size="38" font-weight="bold" fill="#2c3e50" text-anchor="middle" letter-spacing="2">LOVES</text>
+    <text x="200" y="480" font-family="'Helvetica Neue', sans-serif" font-size="20" fill="#7f8c8d" text-anchor="middle" letter-spacing="2">C.S. LEWIS</text>
+  </svg>

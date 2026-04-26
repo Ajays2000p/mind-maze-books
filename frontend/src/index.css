@@ -1,0 +1,191 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 220 20% 14%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 14%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 14%;
+
+    --primary: 190 60% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 18% 94%;
+    --secondary-foreground: 220 15% 25%;
+
+    --muted: 210 14% 95%;
+    --muted-foreground: 220 10% 46%;
+
+    --accent: 190 30% 93%;
+    --accent-foreground: 190 60% 28%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 14% 90%;
+    --input: 210 14% 90%;
+    --ring: 190 60% 42%;
+
+    --radius: 0.625rem;
+
+    --sidebar-background: 210 16% 96%;
+    --sidebar-foreground: 220 12% 30%;
+    --sidebar-primary: 190 60% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 190 24% 92%;
+    --sidebar-accent-foreground: 190 50% 28%;
+    --sidebar-border: 210 12% 91%;
+    --sidebar-ring: 190 60% 42%;
+
+    --chart-1: 190 60% 42%;
+    --chart-2: 220 55% 55%;
+    --chart-3: 160 50% 45%;
+    --chart-4: 35 70% 55%;
+    --chart-5: 340 55% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 600;
+  }
+}
+
+/* Custom UI Improvements */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.arrow-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.arrow-controls button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #ddd;
+  background: white;
+  cursor: pointer;
+  font-size: 16px;
+  color: #555;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.arrow-controls button:hover {
+  background: #f5f5f5;
+  border-color: #ccc;
+}
+
+.carousel-wrapper {
+  position: relative;
+}
+
+.carousel {
+  display: flex;
+  overflow-x: auto;
+  gap: 16px;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  width: 100%;
+}
+
+.carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel-container {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding-bottom: 16px;
+  scrollbar-width: none; /* Firefox */
+  align-items: stretch;
+}
+
+.book-card {
+  width: 180px;
+  height: 340px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.book-card:hover {
+  transform: translateY(-4px);
+}
+
+.book-card img {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.book-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  height: 38px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.book-author {
+  font-size: 12px;
+  color: #666;
+  height: 18px;
+  overflow: hidden;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .book-card {
+    width: 140px;
+    height: 300px;
+  }
+  .book-card img {
+    height: 200px;
+  }
+}
+
+.footer-text {
+  text-align: center;
+  font-weight: 500;
+  color: #555;
+}
