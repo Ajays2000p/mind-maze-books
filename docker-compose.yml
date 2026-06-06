@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  database:
+    image: mongo:latest
+    container_name: mind-maze-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  ml-backend:
+    build: ./ml-backend
+    container_name: mind-maze-ml-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - MONGODB_URI=mongodb://database:27017/mind_maze_books
+    depends_on:
+      - database
+
+  backend:
+    build: ./backend
+    container_name: mind-maze-express-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - MONGODB_URI=mongodb://database:27017/mind_maze_books
+      - JWT_SECRET=your_super_secret_jwt_key_change_this_later
+      - NODE_ENV=production
+    depends_on:
+      - database
+      - ml-backend
+
+  frontend:
+    build: ./frontend
+    container_name: mind-maze-frontend
+    ports:
+      - "8081:8081"
+    depends_on:
+      - backend
+
+volumes:
+  mongo-data:
