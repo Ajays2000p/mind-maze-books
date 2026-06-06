@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useLocation } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { StarRating } from "@/components/StarRating";
 import { ConfidenceBar } from "@/components/ConfidenceBar";
@@ -12,6 +12,7 @@ import { bookApi, ratingApi, mlApi } from "@/services/api";
 import { BookMetadata } from "@/components/BookMetadata";
 
 export default function BookDetails() {
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const isNewArrivalFromState = location.state?.isNewArrival;
@@ -24,6 +25,7 @@ export default function BookDetails() {
   const [coverSource, setCoverSource] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasError, setHasError] = useState(false);
+
 
 
   useEffect(() => {
@@ -132,9 +134,18 @@ export default function BookDetails() {
     <div className="min-h-screen bg-background w-full">
       <Navbar />
       <main className="w-full min-h-screen flex flex-col px-6 lg:px-10 py-8">
-        <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6">
+        <button 
+          onClick={() => {
+            if (window.history.state && window.history.state.idx > 0) {
+              navigate(-1);
+            } else {
+              navigate("/browse");
+            }
+          }}
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6 bg-transparent border-0 p-0 cursor-pointer w-fit"
+        >
           <ArrowLeft size={14} /> Back
-        </Link>
+        </button>
 
         {/* Two-column layout */}
         <div className="grid md:grid-cols-[280px_1fr] gap-8">

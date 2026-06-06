@@ -29,11 +29,11 @@ export function TopRatedMultiGenreCarousel() {
                     finalBooks = allBooks.filter((b: any) => Array.isArray(b.genres || b.genre) && (b.genres || b.genre).length > 1);
                 }
 
-                // Assign static high ratings (4.5 - 5.0)
+                // Assign static high ratings (4.5 - 5.0) and sort descending
                 const booksWithRatings = finalBooks.map((book: any) => ({
                     ...book,
                     displayRating: (4.5 + Math.random() * 0.5).toFixed(1)
-                }));
+                })).sort((a: any, b: any) => parseFloat(b.displayRating) - parseFloat(a.displayRating));
                 
                 setBooks(booksWithRatings.slice(0, 10));
             } catch (error) {
