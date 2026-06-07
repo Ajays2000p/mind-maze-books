@@ -28,7 +28,8 @@ const TARGET_BOOKS = [
     { title: "Drive Your Plow Over the Bones of the Dead", author: "Olga Tokarczuk" },
     { title: "The Rithmatist (The Rithmatist, #1)", author: "Brandon Sanderson" },
     { title: "The Collectors (The Camel Club, #2)", author: "David Baldacci" },
-    { title: "The Face of a Stranger (William Monk, #1)", author: "Anne Perry" }
+    { title: "The Face of a Stranger (William Monk, #1)", author: "Anne Perry" },
+    { title: "Ella's Love", author: "Jasmine  Lee" }
 ];
 
 async function updateSpecificBooks() {
