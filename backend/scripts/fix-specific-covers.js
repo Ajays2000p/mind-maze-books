@@ -31,7 +31,10 @@ const TARGET_BOOKS = [
     { title: "The Face of a Stranger (William Monk, #1)", author: "Anne Perry" },
     { title: "Ella's Love", author: "Jasmine  Lee" },
     { title: "Loving What Is: Four Questions That Can Change Your Life", author: "Byron Katie" },
-    { title: "Hamilton: The Revolution", author: "Lin-Manuel Miranda" }
+    { title: "Hamilton: The Revolution", author: "Lin-Manuel Miranda" },
+    { title: "Walks Away Woman", author: "Ki Longfellow" },
+    { title: "Beautiful Ruins", author: "Jess Walter" },
+    { title: "As Snow Falls", author: "Elle Klass" }
 ];
 
 async function updateSpecificBooks() {
