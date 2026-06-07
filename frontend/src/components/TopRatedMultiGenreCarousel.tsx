@@ -10,6 +10,32 @@ export function TopRatedMultiGenreCarousel() {
     const [books, setBooks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const [isDown, setIsDown] = useState(false);
+    const [startX, setStartX] = useState(0);
+    const [scrollLeftVal, setScrollLeftVal] = useState(0);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (!scrollRef.current) return;
+        setIsDown(true);
+        setStartX(e.pageX - scrollRef.current.offsetLeft);
+        setScrollLeftVal(scrollRef.current.scrollLeft);
+    };
+
+    const handleMouseLeave = () => {
+        setIsDown(false);
+    };
+
+    const handleMouseUp = () => {
+        setIsDown(false);
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDown || !scrollRef.current) return;
+        e.preventDefault();
+        const x = e.pageX - scrollRef.current.offsetLeft;
+        const walk = (x - startX) * 1.5;
+        scrollRef.current.scrollLeft = scrollLeftVal - walk;
+    };
 
     useEffect(() => {
         const fetchTopRated = async () => {
@@ -24,7 +50,7 @@ export function TopRatedMultiGenreCarousel() {
                 let finalBooks = rawBooks;
                 if (finalBooks.length === 0) {
                     const { bookApi } = await import('@/services/api');
-                    const res = await bookApi.getAll({ limit: 100 });
+                    const res = await bookApi.getAll({ limit: 150 });
                     const allBooks = res.data.books || res.data || [];
                     finalBooks = allBooks.filter((b: any) => Array.isArray(b.genres || b.genre) && (b.genres || b.genre).length > 1);
                 }
@@ -35,7 +61,7 @@ export function TopRatedMultiGenreCarousel() {
                     displayRating: (4.5 + Math.random() * 0.5).toFixed(1)
                 })).sort((a: any, b: any) => parseFloat(b.displayRating) - parseFloat(a.displayRating));
                 
-                setBooks(booksWithRatings.slice(0, 10));
+                setBooks(booksWithRatings.slice(0, 25));
             } catch (error) {
                 console.error("Failed to fetch top rated multi-genre books", error);
             } finally {
@@ -58,7 +84,7 @@ export function TopRatedMultiGenreCarousel() {
     };
 
     const displayBooks = useMemo(() => {
-        return (books || []).slice(0, 10);
+        return (books || []).slice(0, 25);
     }, [books]);
 
     if (loading) {
@@ -82,10 +108,19 @@ export function TopRatedMultiGenreCarousel() {
             <div className="carousel-wrapper">
                 <div
                     ref={scrollRef}
-                    className="carousel"
+                    className="carousel cursor-grab active:cursor-grabbing select-none"
+                    onMouseDown={handleMouseDown}
+                    onMouseLeave={handleMouseLeave}
+                    onMouseUp={handleMouseUp}
+                    onMouseMove={handleMouseMove}
                 >
                     {displayBooks.map((book, idx) => (
-                        <Link key={`${book._id}-${idx}`} to={`/book/${book._id}`} className="book-card group">
+                        <Link 
+                            key={`${book._id}-${idx}`} 
+                            to={`/book/${book._id}`} 
+                            className="book-card group"
+                            onDragStart={(e) => e.preventDefault()}
+                        >
                             <Card className="overflow-hidden border bg-card hover:shadow-xl transition-all duration-300 relative h-full">
                                 <div className="overflow-hidden">
                                     <img

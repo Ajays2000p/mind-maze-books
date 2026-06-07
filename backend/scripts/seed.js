@@ -26,6 +26,7 @@ const seedData = async () => {
 
 
         const formattedBooks = books.map(book => ({
+            _id: book._id ? (book._id.$oid ? new mongoose.Types.ObjectId(book._id.$oid) : new mongoose.Types.ObjectId(book._id)) : undefined,
             title: book.title,
             author: book.author,
             genres: book.genres,

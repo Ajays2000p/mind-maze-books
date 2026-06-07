@@ -114,7 +114,7 @@ router.get('/top-rated', async (req, res) => {
                 $sort: { averageRating: -1, ratingCount: -1 }
             },
             {
-                $limit: 10
+                $limit: 25
             },
             {
                 $project: {
