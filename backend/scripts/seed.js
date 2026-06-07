@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 const Book = require('../models/Book');
+const Rating = require('../models/Rating');
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -37,7 +38,15 @@ const seedData = async () => {
             pages: 300,
         }));
 
-        await Book.insertMany(formattedBooks);
+        try {
+            await Book.insertMany(formattedBooks, { ordered: false });
+        } catch (insertErr) {
+            if (insertErr.code !== 11000) {
+                console.error('Insert error:', insertErr.message);
+                throw insertErr;
+            }
+            console.log('Some duplicate books were ignored, other books seeded successfully.');
+        }
         console.log('Seeding complete!');
         process.exit(0);
     } catch (err) {
