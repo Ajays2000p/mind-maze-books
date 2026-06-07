@@ -29,7 +29,9 @@ const TARGET_BOOKS = [
     { title: "The Rithmatist (The Rithmatist, #1)", author: "Brandon Sanderson" },
     { title: "The Collectors (The Camel Club, #2)", author: "David Baldacci" },
     { title: "The Face of a Stranger (William Monk, #1)", author: "Anne Perry" },
-    { title: "Ella's Love", author: "Jasmine  Lee" }
+    { title: "Ella's Love", author: "Jasmine  Lee" },
+    { title: "Loving What Is: Four Questions That Can Change Your Life", author: "Byron Katie" },
+    { title: "Hamilton: The Revolution", author: "Lin-Manuel Miranda" }
 ];
 
 async function updateSpecificBooks() {
