@@ -46,13 +46,22 @@ export function TopRatedMultiGenreCarousel() {
                 // Fallback and dynamic rating assignment as requested
                 const rawBooks = (data && data.length > 0) ? data : [];
                 
-                // If no data, fetch from all books
-                let finalBooks = rawBooks;
-                if (finalBooks.length === 0) {
+                // If fewer than 15 books, backfill from all books to ensure a rich carousel
+                let finalBooks = [...rawBooks];
+                if (finalBooks.length < 15) {
                     const { bookApi } = await import('@/services/api');
                     const res = await bookApi.getAll({ limit: 150 });
                     const allBooks = res.data.books || res.data || [];
-                    finalBooks = allBooks.filter((b: any) => Array.isArray(b.genres || b.genre) && (b.genres || b.genre).length > 1);
+                    const multiGenreBooks = allBooks.filter((b: any) => Array.isArray(b.genres || b.genre) && (b.genres || b.genre).length > 1);
+                    
+                    const existingIds = new Set(finalBooks.map((b: any) => b._id));
+                    for (const book of multiGenreBooks) {
+                        if (!existingIds.has(book._id)) {
+                            finalBooks.push(book);
+                            existingIds.add(book._id);
+                        }
+                        if (finalBooks.length >= 25) break;
+                    }
                 }
 
                 // Assign static high ratings (4.5 - 5.0) and sort descending

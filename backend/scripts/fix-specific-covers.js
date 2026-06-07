@@ -8,8 +8,8 @@ const TARGET_BOOKS = [
     { title: "Behind Closed Doors (Daniels Brothers, #1)", author: "Sherri Hayes" },
     { title: "You Will Know Me", author: "Megan Abbott" },
     { title: "The Burning Room (Harry Bosch, #17; Harry Bosch Universe, #26)", author: "Michael Connelly" },
-    { title: "A Good Girl’s Guide to Murder (A Good Girl’s Guide to Murder, #1)", author: "Holly Jackson" },
-    { title: "My Lovely Wife", author: "Samantha Downing" },
+    { title: "A Good Girl's Guide to Murder (A Good Girl's Guide to Murder, #1)", author: "Holly  Jackson" },
+    { title: "My Lovely Wife", author: "Samantha  Downing" },
     { title: "The Art of Racing in the Rain", author: "Garth Stein" },
     { title: "Fish in a Tree", author: "Lynda Mullaly Hunt" },
     { title: "Dividers", author: "Travis Adams" },
@@ -34,7 +34,26 @@ const TARGET_BOOKS = [
     { title: "Hamilton: The Revolution", author: "Lin-Manuel Miranda" },
     { title: "Walks Away Woman", author: "Ki Longfellow" },
     { title: "Beautiful Ruins", author: "Jess Walter" },
-    { title: "As Snow Falls", author: "Elle Klass" }
+    { title: "As Snow Falls", author: "Elle Klass" },
+    { title: "The Water Walls", author: "iLana Markarov" },
+    { title: "A Man with A White Shadow", author: "Vikram Suryawanshi" },
+    { title: "Jack's Day (Jack's Reign, #1)", author: "Julie Mannino" },
+    { title: "Before I Fall", author: "Lauren Oliver" },
+    { title: "No Ordinary Day", author: "Polly Becks" },
+    { title: "Heart of a Warrior Angel", author: "Lali A.  Love" },
+    { title: "The King Who Disappeared", author: "Hank Quense" },
+    { title: "Sky Child (Sky Child, #1)", author: "T.M. Brenner" },
+    { title: "Hard Kill (The Rizwan Sabir Mysteries #1)", author: "Charlie Flowers" },
+    { title: "White: The Great Pursuit (The Circle, #3)", author: "Ted Dekker" },
+    { title: "The Wrath of Truth (The Wages of Sin, #2)", author: "L.E.  Parker" },
+    { title: "Twisted", author: "Anna Gallegos" },
+    { title: "Twisted (Sinister Tales, #2)", author: "Anna Gallegos" },
+    { title: "Demented (Sinister Tales Book 1)", author: "Anna Gallegos" },
+    { title: "Demented (Sinister Tales, #1)", author: "Anna Gallegos" },
+    { title: "Fever Dream (Pendergast, #10)", author: "Douglas Preston" },
+    { title: "Thicker Than Blood (Marchwood Vampires, #2)", author: "Shalini Boland" },
+    { title: "Flowers in the Attic (Dollanganger, #1)", author: "V.C. Andrews" },
+    { title: "Plague of the Dead (Morningstar Strain #1)", author: "Z.A. Recht" }
 ];
 
 async function updateSpecificBooks() {

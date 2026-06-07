@@ -11,7 +11,8 @@ router.get('/profile', auth, async (req, res) => {
         const user = await User.findById(req.user.id).select('-password');
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        const ratings = await Rating.find({ userId: user._id }).populate('bookId');
+        const allRatings = await Rating.find({ userId: user._id }).populate('bookId');
+        const ratings = allRatings.filter(r => r.bookId);
 
         // Calculate Analytics
         const genreCounts = {};

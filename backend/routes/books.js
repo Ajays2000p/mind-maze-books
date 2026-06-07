@@ -64,7 +64,8 @@ router.get('/personalized-recommendations', auth, async (req, res) => {
         const userId = new mongoose.Types.ObjectId(req.user.id);
 
         // 1. Get user rating count
-        const userRatings = await Rating.find({ userId }).populate('bookId');
+        const allUserRatings = await Rating.find({ userId }).populate('bookId');
+        const userRatings = allUserRatings.filter(r => r.bookId);
         if (userRatings.length < 10) {
             return res.json({ 
                 books: [], 
