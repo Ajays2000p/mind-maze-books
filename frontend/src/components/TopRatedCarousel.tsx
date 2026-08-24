@@ -1,23 +1,25 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { rankingApi } from "@/services/api";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import { SkeletonCarousel } from "@/components/SkeletonCarousel";
-import { genres } from "@/lib/mock-data";
 
 export function TopRatedCarousel() {
     const [books, setBooks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Mouse drag states
     const [isDown, setIsDown] = useState(false);
     const [startX, setStartX] = useState(0);
     const [scrollLeftVal, setScrollLeftVal] = useState(0);
 
+    // Mouse drag handlers
     const handleMouseDown = (e: React.MouseEvent) => {
         if (!scrollRef.current) return;
+
         setIsDown(true);
         setStartX(e.pageX - scrollRef.current.offsetLeft);
         setScrollLeftVal(scrollRef.current.scrollLeft);
@@ -33,52 +35,36 @@ export function TopRatedCarousel() {
 
     const handleMouseMove = (e: React.MouseEvent) => {
         if (!isDown || !scrollRef.current) return;
+
         e.preventDefault();
+
         const x = e.pageX - scrollRef.current.offsetLeft;
         const walk = (x - startX) * 1.5;
-        scrollRef.current.scrollLeft = scrollLeftVal - walk;
-    };
-    const [isDown, setIsDown] = useState(false);
-    const [startX, setStartX] = useState(0);
-    const [scrollLeftVal, setScrollLeftVal] = useState(0);
 
-    const handleMouseDown = (e: React.MouseEvent) => {
-        if (!scrollRef.current) return;
-        setIsDown(true);
-        setStartX(e.pageX - scrollRef.current.offsetLeft);
-        setScrollLeftVal(scrollRef.current.scrollLeft);
-    };
-
-    const handleMouseLeave = () => {
-        setIsDown(false);
-    };
-
-    const handleMouseUp = () => {
-        setIsDown(false);
-    };
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!isDown || !scrollRef.current) return;
-        e.preventDefault();
-        const x = e.pageX - scrollRef.current.offsetLeft;
-        const walk = (x - startX) * 1.5;
         scrollRef.current.scrollLeft = scrollLeftVal - walk;
     };
 
     useEffect(() => {
         const fetchTopRated = async () => {
             setLoading(true);
+
             try {
-                let { data } = await rankingApi.getTopRated({ limit: 10 });
+                const { data } = await rankingApi.getTopRated({ limit: 10 });
 
-                const rawBooks = Array.isArray(data) ? data : (data?.books || []);
+                const rawBooks = Array.isArray(data)
+                    ? data
+                    : (data?.books || []);
 
-                // Format ratings from MongoDB data while preserving backend sort order
+                // Format ratings while preserving backend order
                 const booksWithRatings = rawBooks.map((book: any) => {
-                    const val = book.averageRating !== undefined ? book.averageRating : (book.rating || 0);
+                    const val =
+                        book.averageRating !== undefined
+                            ? book.averageRating
+                            : (book.rating || 0);
+
                     return {
                         ...book,
-                        displayRating: Number(val).toFixed(1)
+                        displayRating: Number(val).toFixed(1),
                     };
                 });
 
@@ -95,9 +81,14 @@ export function TopRatedCarousel() {
         const handleRatingUpdate = () => {
             fetchTopRated();
         };
+
         window.addEventListener("ratingUpdated", handleRatingUpdate);
+
         return () => {
-            window.removeEventListener("ratingUpdated", handleRatingUpdate);
+            window.removeEventListener(
+                "ratingUpdated",
+                handleRatingUpdate
+            );
         };
     }, []);
 
@@ -115,7 +106,6 @@ export function TopRatedCarousel() {
 
     const displayBooks = useMemo(() => {
         return (books || []).slice(0, 25);
-        return (books || []).slice(0, 25);
     }, [books]);
 
     if (loading) {
@@ -125,7 +115,10 @@ export function TopRatedCarousel() {
     return (
         <section className="space-y-6">
             <div className="section-header">
-                <h2 className="text-foreground tracking-tight">Top Rated Single-Genre Books</h2>
+                <h2 className="text-foreground tracking-tight">
+                    Top Rated Single-Genre Books
+                </h2>
+
                 <div className="arrow-controls">
                     <button onClick={scrollLeft}>‹</button>
                     <button onClick={scrollRight}>›</button>
@@ -135,11 +128,6 @@ export function TopRatedCarousel() {
             <div className="carousel-wrapper">
                 <div
                     ref={scrollRef}
-                    className="carousel cursor-grab active:cursor-grabbing select-none"
-                    onMouseDown={handleMouseDown}
-                    onMouseLeave={handleMouseLeave}
-                    onMouseUp={handleMouseUp}
-                    onMouseMove={handleMouseMove}
                     className="carousel cursor-grab active:cursor-grabbing select-none"
                     onMouseDown={handleMouseDown}
                     onMouseLeave={handleMouseLeave}
@@ -156,24 +144,36 @@ export function TopRatedCarousel() {
                             <Card className="overflow-hidden border bg-card hover:shadow-xl transition-all duration-300 relative h-full">
                                 <div className="overflow-hidden">
                                     <img
-                                        src={book.realCoverImage || book.thumbnailUrl}
+                                        src={
+                                            book.realCoverImage ||
+                                            book.thumbnailUrl
+                                        }
                                         alt={book.title}
                                         className="transition-transform duration-500 group-hover:scale-110"
                                         loading="lazy"
                                     />
                                 </div>
+
                                 <CardContent className="p-3.5 flex flex-col justify-between flex-grow">
                                     <div className="space-y-1">
                                         <h3 className="book-title group-hover:text-primary transition-colors">
                                             {book.title}
                                         </h3>
-                                        <p className="book-author" title={book.author}>
+
+                                        <p
+                                            className="book-author"
+                                            title={book.author}
+                                        >
                                             {book.author}
                                         </p>
                                     </div>
+
                                     <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                        <span className="font-medium text-foreground">{book.displayRating || "0.0"}</span>
+
+                                        <span className="font-medium text-foreground">
+                                            {book.displayRating || "0.0"}
+                                        </span>
                                     </div>
                                 </CardContent>
                             </Card>
