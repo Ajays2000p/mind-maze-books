@@ -87,6 +87,21 @@ export default function BookDetails() {
     try {
       await ratingApi.submit(id!, userRating);
       setSubmitted(true);
+      window.dispatchEvent(new CustomEvent("ratingUpdated", { detail: { bookId: id, rating: userRating } }));
+      
+      // Refetch latest book details from MongoDB so ratingCount and averageRating update immediately
+      if (id) {
+        const updatedRes = await bookApi.getById(id);
+        if (updatedRes.data) {
+          setBook((prev: any) => ({
+            ...prev,
+            ...updatedRes.data,
+            averageRating: updatedRes.data.rating || 0,
+            ratingCount: updatedRes.data.ratingCount || 0
+          }));
+        }
+      }
+
       toast({ title: `Rated ${userRating} stars!` });
     } catch (error) {
       toast({ title: "Failed to submit rating", variant: "destructive" });

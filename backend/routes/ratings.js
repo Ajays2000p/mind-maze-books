@@ -17,13 +17,14 @@ router.post('/', auth, async (req, res) => {
         let rating = await Rating.findOne({ userId, bookId });
 
         if (rating) {
-            return res.status(400).json({ message: 'Rating already submitted' });
+            rating.value = value;
+            await rating.save();
+        } else {
+            rating = new Rating({ userId, bookId, value });
+            await rating.save();
         }
 
-        rating = new Rating({ userId, bookId, value });
-        await rating.save();
-
-        // Update Book stats
+        // Update Book stats in MongoDB
         const allRatings = await Rating.find({ bookId });
         const count = allRatings.length;
         const sum = allRatings.reduce((acc, curr) => acc + curr.value, 0);
@@ -34,7 +35,7 @@ router.post('/', auth, async (req, res) => {
             ratingCount: count
         });
 
-        res.status(201).json(rating);
+        res.status(200).json(rating);
     } catch (err) {
         res.status(500).json({ message: 'Server error', error: err.message });
     }

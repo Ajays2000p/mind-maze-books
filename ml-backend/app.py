@@ -41,11 +41,42 @@ def get_weighted_rating_books(limit=10):
     return top_books
 
 def get_new_releases(limit=10):
-    books = list(db.books.find({}).sort("createdAt", -1).limit(limit))
+    books = list(db.books.find({}))
+    if not books: return []
+
+    # Get live rating counts from ratings collection
+    ratings_cursor = db.ratings.aggregate([
+        {"$group": {"_id": "$bookId", "count": {"$sum": 1}, "avg": {"$avg": "$value"}}}
+    ])
+    
+    rating_map = {}
+    for r in ratings_cursor:
+        rating_map[str(r["_id"])] = {
+            "count": r["count"],
+            "avg": round(r["avg"], 1)
+        }
+
+    enriched_books = []
     for book in books:
-        book['_id'] = str(book['_id'])
-        book['recommendationReason'] = "Newly added to our library"
-    return books
+        bid = str(book["_id"])
+        agg = rating_map.get(bid)
+        
+        count = agg["count"] if agg else book.get("ratingCount", 0)
+        avg = agg["avg"] if agg else book.get("rating", 0)
+        
+        # Requirement: ratingCount >= 2 and ratingCount <= 9
+        if 2 <= count <= 9:
+            book["_id"] = bid
+            book["ratingCount"] = count
+            book["rating"] = avg
+            book["averageRating"] = avg
+            book["recommendationReason"] = "Newly added to our library"
+            enriched_books.append(book)
+
+    # Sort by createdAt descending (newest created date first)
+    enriched_books.sort(key=lambda x: str(x.get("createdAt") or ""), reverse=True)
+
+    return enriched_books[:limit]
 
 def get_user_based_recommendations(user_id, limit=10):
     try:
@@ -90,12 +121,12 @@ def get_hybrid_recommendations():
     user_id = request.args.get('userId')
     
     response = {
-        "mostRecommended": get_weighted_rating_books(12),
-        "newArrivals": get_new_releases(12)
+        "mostRecommended": get_weighted_rating_books(10),
+        "newArrivals": get_new_releases(10)
     }
     
     if user_id:
-        response["personalized"] = get_user_based_recommendations(user_id, 12)
+        response["personalized"] = get_user_based_recommendations(user_id, 10)
         
     return jsonify(response)
 

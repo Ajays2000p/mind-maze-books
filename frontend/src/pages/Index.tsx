@@ -81,6 +81,10 @@ export default function Index() {
     }
   };
 
+  useEffect(() => {
+    fetchHybrid();
+  }, [user]);
+
   // Memoized lists for rendering stability
   const visibleMostPopular = useMemo(() => recommendations.mostRecommended, [recommendations.mostRecommended]);
   const visibleNewArrivals = useMemo(() => recommendations.newArrivals, [recommendations.newArrivals]);

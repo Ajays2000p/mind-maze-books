@@ -197,16 +197,25 @@ router.get('/', async (req, res) => {
             }
         }
 
+        const pageNum = parseInt(page, 10) || 1;
+        const limitNum = parseInt(limit, 10) || 20;
+
+        const skip = (pageNum - 1) * limitNum;
         const books = await Book.find(query)
-            .limit(limit * 1)
-            .skip((page - 1) * limit)
+            .skip(skip)
+            .limit(limitNum)
             .exec();
 
-        const total = await Book.countDocuments(query);
+        const totalBooks = await Book.countDocuments(query);
+        const totalPages = Math.ceil(totalBooks / limitNum);
+
         res.json({
             books,
-            totalPages: Math.ceil(total / limit),
-            currentPage: page
+            page: pageNum,
+            limit: limitNum,
+            totalBooks,
+            totalPages,
+            hasNextPage: pageNum < totalPages
         });
     } catch (err) {
         res.status(500).json({ message: 'Server error', error: err.message });
@@ -240,11 +249,14 @@ router.get('/:id', async (req, res) => {
         let finalRating = book.rating;
         let finalCount = book.ratingCount;
 
-        if (count >= 100) {
+        if (count > 0) {
             const bookRatings = await Rating.find({ bookId: book._id });
             const avg = bookRatings.reduce((acc, curr) => acc + curr.value, 0) / count;
             finalRating = Math.round(avg * 10) / 10;
             finalCount = count;
+        } else if (book.ratingCount !== undefined && book.ratingCount > 0) {
+            finalRating = Math.round((book.rating || 0) * 10) / 10;
+            finalCount = book.ratingCount;
         } else {
             const metrics = getStableMetrics(book._id);
             finalRating = metrics.rating;

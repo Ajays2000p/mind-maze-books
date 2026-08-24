@@ -56,100 +56,95 @@ router.get('/most-rated', async (req, res) => {
 });
 
 // @route   GET /api/rankings/top-rated
-// @desc    Get books sorted by highest average rating, with optional genre filter or multi-genre filter
+// @desc    Get books sorted dynamically by highest average rating, with optional genre filter or multi-genre filter
 router.get('/top-rated', async (req, res) => {
     try {
-        const { genre, multiGenre } = req.query;
+        const { genre, multiGenre, limit } = req.query;
+        const targetLimit = parseInt(limit, 10) || 25;
 
-        const aggregationPipeline = [
+        // Build filter for genre constraints
+        let genreFilter = {};
+        if (multiGenre === 'true') {
+            genreFilter = { "genres.1": { $exists: true } };
+        } else if (genre) {
+            genreFilter = { "genres": { $size: 1, $all: [genre] } };
+        } else {
+            genreFilter = { "genres": { $size: 1 } };
+        }
+
+        // 1. Fetch matching books from Book collection
+        const books = await Book.find(genreFilter).lean();
+
+        // 2. Aggregate live user ratings from Rating collection
+        const ratingAgg = await Rating.aggregate([
             {
                 $group: {
                     _id: "$bookId",
                     ratingCount: { $sum: 1 },
                     averageRating: { $avg: "$value" }
                 }
-            },
-            {
-                $match: {
-                    ratingCount: { $gte: 1 }
-                }
-            },
-            {
-                $lookup: {
-                    from: "books",
-                    localField: "_id",
-                    foreignField: "_id",
-                    as: "bookDetails"
-                }
-            },
-            {
-                $unwind: "$bookDetails"
             }
-        ];
+        ]);
 
-        // Enforce genre constraints
-        if (multiGenre === 'true') {
-            // Must have more than 1 genre
-            aggregationPipeline.push({
-                $match: {
-                    "bookDetails.genres.1": { $exists: true }
-                }
+        const ratingMap = new Map();
+        ratingAgg.forEach(r => {
+            ratingMap.set(r._id.toString(), {
+                averageRating: Math.round(r.averageRating * 10) / 10,
+                ratingCount: r.ratingCount
             });
-        } else if (genre) {
-            aggregationPipeline.push({
-                $match: {
-                    "bookDetails.genres": { $size: 1, $all: [genre] }
-                }
-            });
-        } else {
-            aggregationPipeline.push({
-                $match: {
-                    "bookDetails.genres": { $size: 1 }
-                }
-            });
-        }
+        });
 
-        // Add sorting, limiting and projection
-        aggregationPipeline.push(
-            {
-                $sort: { averageRating: -1, ratingCount: -1 }
-            },
-            {
-                $limit: 10
-            },
-            {
-                $project: {
-                    _id: 1,
-                    title: "$bookDetails.title",
-                    author: "$bookDetails.author",
-                    thumbnailUrl: "$bookDetails.thumbnailUrl",
-                    realCoverImage: "$bookDetails.realCoverImage",
-                    genres: "$bookDetails.genres"
-                }
-            }
-        );
+        // 3. Enrich each book with dynamic ratings from MongoDB
+        let enrichedBooks = books.map(book => {
+            const idStr = book._id.toString();
+            const agg = ratingMap.get(idStr);
 
-        const topRatedBooks = await Rating.aggregate(aggregationPipeline);
+            let finalRating = 0;
+            let finalCount = 0;
 
-        // Inject stable metrics deterministically only if we have sparse real data
-        const enrichedBooks = topRatedBooks.map(book => {
-            if (book.ratingCount >= 100) {
-                // Return real values if heavily rated
-                return {
-                    ...book,
-                    averageRating: Math.round(book.averageRating * 10) / 10,
-                };
+            if (agg && agg.ratingCount > 0) {
+                finalRating = agg.averageRating;
+                finalCount = agg.ratingCount;
+            } else if (book.rating && book.rating > 0) {
+                finalRating = Math.round(book.rating * 10) / 10;
+                finalCount = book.ratingCount || 1;
+            } else {
+                const metrics = getStableMetrics(book._id);
+                finalRating = metrics.rating;
+                finalCount = metrics.ratingCount;
             }
 
-            const metrics = getStableMetrics(book._id);
             return {
-                ...book,
-                averageRating: metrics.rating,
-                ratingCount: metrics.ratingCount
+                _id: book._id,
+                title: book.title,
+                author: book.author,
+                thumbnailUrl: book.thumbnailUrl,
+                realCoverImage: book.realCoverImage,
+                genres: book.genres,
+                averageRating: finalRating,
+                ratingCount: finalCount
             };
         });
 
-        res.json(enrichedBooks);
+        // 4. Apply ratingCount filters and sorting based on carousel type (Option A: Highest Star Score First)
+        if (multiGenre === 'true') {
+            // Multi-genre books: ratingCount between 24 and 29 inclusive
+            enrichedBooks = enrichedBooks.filter(b => b.ratingCount >= 24 && b.ratingCount <= 29);
+        } else {
+            // Single-genre books: ratingCount between 36 and 53 inclusive
+            enrichedBooks = enrichedBooks.filter(b => b.ratingCount >= 36 && b.ratingCount <= 53);
+        }
+
+        // Sort primarily by averageRating (descending), tie-breaker ratingCount (descending)
+        enrichedBooks.sort((a, b) => {
+            if (b.averageRating !== a.averageRating) {
+                return b.averageRating - a.averageRating;
+            }
+            return b.ratingCount - a.ratingCount;
+        });
+
+        // 6. Return top 10 books
+        res.json(enrichedBooks.slice(0, targetLimit));
     } catch (error) {
         console.error('Error fetching top rated books:', error);
         res.status(500).json({ message: 'Server error' });

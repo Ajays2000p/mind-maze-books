@@ -24,18 +24,7 @@ export function BookCard({ book, compact = false, showReason = false, showMatch 
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasError, setHasError] = useState(false);
 
-  const getRealisticCount = () => {
-    // Use hash of book.id to keep it consistent per book
-    let hash = 0;
-    const idStr = String(book.id || "");
-    for (let i = 0; i < idStr.length; i++) {
-        hash = ((hash << 5) - hash) + idStr.charCodeAt(i);
-        hash |= 0;
-    }
-    return 10 + (Math.abs(hash) % 41);
-  };
-
-  const displayCount = isNewArrival ? getRealisticCount() : (book.ratingCount || 0);
+  const displayCount = book.ratingCount !== undefined ? book.ratingCount : 0;
 
   const handleImageError = async () => {
     if (hasError || isGenerating) return; // Prevent infinite loops

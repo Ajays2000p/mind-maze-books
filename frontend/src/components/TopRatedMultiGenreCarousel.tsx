@@ -16,27 +16,18 @@ export function TopRatedMultiGenreCarousel() {
         const fetchTopRated = async () => {
             setLoading(true);
             try {
-                let { data } = await rankingApi.getTopRated({ multiGenre: true });
+                let { data } = await rankingApi.getTopRated({ multiGenre: true, limit: 10 });
                 
-                // Fallback and dynamic rating assignment as requested
-                const rawBooks = (data && data.length > 0) ? data : [];
+                const rawBooks = Array.isArray(data) ? data : (data?.books || []);
                 
-                let finalBooks = [...rawBooks];
-                if (finalBooks.length < 10) {
-                    const { bookApi } = await import('@/services/api');
-                    const res = await bookApi.getAll({ limit: 100 });
-                    const allBooks = res.data.books || res.data || [];
-                    const fallbackBooks = allBooks.filter((b: any) => Array.isArray(b.genres || b.genre) && (b.genres || b.genre).length > 1);
-                    const existingIds = new Set(finalBooks.map((b: any) => b._id));
-                    const newBooks = fallbackBooks.filter((b: any) => !existingIds.has(b._id));
-                    finalBooks = [...finalBooks, ...newBooks];
-                }
-
-                // Assign static high ratings (4.5 - 5.0)
-                const booksWithRatings = finalBooks.map((book: any) => ({
-                    ...book,
-                    displayRating: (4.5 + Math.random() * 0.5).toFixed(1)
-                }));
+                // Format ratings from MongoDB data while preserving backend sort order
+                const booksWithRatings = rawBooks.map((book: any) => {
+                    const val = book.averageRating !== undefined ? book.averageRating : (book.rating || 0);
+                    return {
+                        ...book,
+                        displayRating: Number(val).toFixed(1)
+                    };
+                });
                 
                 setBooks(booksWithRatings.slice(0, 10));
             } catch (error) {
@@ -45,7 +36,16 @@ export function TopRatedMultiGenreCarousel() {
                 setLoading(false);
             }
         };
+
         fetchTopRated();
+
+        const handleRatingUpdate = () => {
+            fetchTopRated();
+        };
+        window.addEventListener("ratingUpdated", handleRatingUpdate);
+        return () => {
+            window.removeEventListener("ratingUpdated", handleRatingUpdate);
+        };
     }, []);
 
     const scrollLeft = () => {
@@ -103,9 +103,9 @@ export function TopRatedMultiGenreCarousel() {
                                             {book.author}
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-2 mt-1">
+                                    <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                        <span className="text-xs font-medium">{book.displayRating || "0.0"}</span>
+                                        <span className="font-medium text-foreground">{book.displayRating || "0.0"}</span>
                                     </div>
                                 </CardContent>
                             </Card>

@@ -12,33 +12,50 @@ export function TopRatedCarousel() {
     const [books, setBooks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const [isDown, setIsDown] = useState(false);
+    const [startX, setStartX] = useState(0);
+    const [scrollLeftVal, setScrollLeftVal] = useState(0);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (!scrollRef.current) return;
+        setIsDown(true);
+        setStartX(e.pageX - scrollRef.current.offsetLeft);
+        setScrollLeftVal(scrollRef.current.scrollLeft);
+    };
+
+    const handleMouseLeave = () => {
+        setIsDown(false);
+    };
+
+    const handleMouseUp = () => {
+        setIsDown(false);
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDown || !scrollRef.current) return;
+        e.preventDefault();
+        const x = e.pageX - scrollRef.current.offsetLeft;
+        const walk = (x - startX) * 1.5;
+        scrollRef.current.scrollLeft = scrollLeftVal - walk;
+    };
 
     useEffect(() => {
         const fetchTopRated = async () => {
             setLoading(true);
             try {
-                let { data } = await rankingApi.getTopRated({});
-                
-                // Fallback and dynamic rating assignment as requested
-                const rawBooks = (data && data.length > 0) ? data : [];
-                
-                let finalBooks = [...rawBooks];
-                if (finalBooks.length < 10) {
-                    const { bookApi } = await import('@/services/api');
-                    const res = await bookApi.getAll({ limit: 50 });
-                    const allBooks = res.data.books || res.data || [];
-                    const fallbackBooks = allBooks.filter((b: any) => !Array.isArray(b.genres || b.genre) || (b.genres || b.genre).length <= 1);
-                    const existingIds = new Set(finalBooks.map((b: any) => b._id));
-                    const newBooks = fallbackBooks.filter((b: any) => !existingIds.has(b._id));
-                    finalBooks = [...finalBooks, ...newBooks];
-                }
+                let { data } = await rankingApi.getTopRated({ limit: 10 });
 
-                // Assign static high ratings (4.5 - 5.0)
-                const booksWithRatings = finalBooks.map((book: any) => ({
-                    ...book,
-                    displayRating: (4.5 + Math.random() * 0.5).toFixed(1)
-                }));
-                
+                const rawBooks = Array.isArray(data) ? data : (data?.books || []);
+
+                // Format ratings from MongoDB data while preserving backend sort order
+                const booksWithRatings = rawBooks.map((book: any) => {
+                    const val = book.averageRating !== undefined ? book.averageRating : (book.rating || 0);
+                    return {
+                        ...book,
+                        displayRating: Number(val).toFixed(1)
+                    };
+                });
+
                 setBooks(booksWithRatings.slice(0, 10));
             } catch (error) {
                 console.error("Failed to fetch top rated books", error);
@@ -46,7 +63,16 @@ export function TopRatedCarousel() {
                 setLoading(false);
             }
         };
+
         fetchTopRated();
+
+        const handleRatingUpdate = () => {
+            fetchTopRated();
+        };
+        window.addEventListener("ratingUpdated", handleRatingUpdate);
+        return () => {
+            window.removeEventListener("ratingUpdated", handleRatingUpdate);
+        };
     }, []);
 
     const scrollLeft = () => {
@@ -62,7 +88,7 @@ export function TopRatedCarousel() {
     };
 
     const displayBooks = useMemo(() => {
-        return (books || []).slice(0, 10);
+        return (books || []).slice(0, 25);
     }, [books]);
 
     if (loading) {
@@ -78,14 +104,23 @@ export function TopRatedCarousel() {
                     <button onClick={scrollRight}>›</button>
                 </div>
             </div>
-            
+
             <div className="carousel-wrapper">
                 <div
                     ref={scrollRef}
-                    className="carousel"
+                    className="carousel cursor-grab active:cursor-grabbing select-none"
+                    onMouseDown={handleMouseDown}
+                    onMouseLeave={handleMouseLeave}
+                    onMouseUp={handleMouseUp}
+                    onMouseMove={handleMouseMove}
                 >
                     {displayBooks.map((book, idx) => (
-                        <Link key={`${book._id}-${idx}`} to={`/book/${book._id}`} className="book-card group">
+                        <Link
+                            key={`${book._id}-${idx}`}
+                            to={`/book/${book._id}`}
+                            className="book-card group"
+                            onDragStart={(e) => e.preventDefault()}
+                        >
                             <Card className="overflow-hidden border bg-card hover:shadow-xl transition-all duration-300 relative h-full">
                                 <div className="overflow-hidden">
                                     <img
@@ -104,9 +139,9 @@ export function TopRatedCarousel() {
                                             {book.author}
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-2 mt-1">
+                                    <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                        <span className="text-xs font-medium">{book.displayRating || "0.0"}</span>
+                                        <span className="font-medium text-foreground">{book.displayRating || "0.0"}</span>
                                     </div>
                                 </CardContent>
                             </Card>
