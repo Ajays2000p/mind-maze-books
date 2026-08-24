@@ -38,6 +38,32 @@ export function TopRatedCarousel() {
         const walk = (x - startX) * 1.5;
         scrollRef.current.scrollLeft = scrollLeftVal - walk;
     };
+    const [isDown, setIsDown] = useState(false);
+    const [startX, setStartX] = useState(0);
+    const [scrollLeftVal, setScrollLeftVal] = useState(0);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (!scrollRef.current) return;
+        setIsDown(true);
+        setStartX(e.pageX - scrollRef.current.offsetLeft);
+        setScrollLeftVal(scrollRef.current.scrollLeft);
+    };
+
+    const handleMouseLeave = () => {
+        setIsDown(false);
+    };
+
+    const handleMouseUp = () => {
+        setIsDown(false);
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDown || !scrollRef.current) return;
+        e.preventDefault();
+        const x = e.pageX - scrollRef.current.offsetLeft;
+        const walk = (x - startX) * 1.5;
+        scrollRef.current.scrollLeft = scrollLeftVal - walk;
+    };
 
     useEffect(() => {
         const fetchTopRated = async () => {
@@ -89,6 +115,7 @@ export function TopRatedCarousel() {
 
     const displayBooks = useMemo(() => {
         return (books || []).slice(0, 25);
+        return (books || []).slice(0, 25);
     }, [books]);
 
     if (loading) {
@@ -108,6 +135,11 @@ export function TopRatedCarousel() {
             <div className="carousel-wrapper">
                 <div
                     ref={scrollRef}
+                    className="carousel cursor-grab active:cursor-grabbing select-none"
+                    onMouseDown={handleMouseDown}
+                    onMouseLeave={handleMouseLeave}
+                    onMouseUp={handleMouseUp}
+                    onMouseMove={handleMouseMove}
                     className="carousel cursor-grab active:cursor-grabbing select-none"
                     onMouseDown={handleMouseDown}
                     onMouseLeave={handleMouseLeave}

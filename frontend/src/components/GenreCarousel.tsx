@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { BookCard } from "@/components/BookCard";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -14,6 +14,32 @@ interface GenreCarouselProps {
 
 export function GenreCarousel({ title, books, hideRatings = false, hideRatingCount = false, isNewArrival = false }: GenreCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isDown, setIsDown] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeftVal, setScrollLeftVal] = useState(0);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    setIsDown(true);
+    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setScrollLeftVal(scrollRef.current.scrollLeft);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDown(false);
+  };
+
+  const handleMouseUp = () => {
+    setIsDown(false);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDown || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    scrollRef.current.scrollLeft = scrollLeftVal - walk;
+  };
 
   const scrollLeft = () => {
     if (scrollRef.current) {
@@ -44,9 +70,16 @@ export function GenreCarousel({ title, books, hideRatings = false, hideRatingCou
       </div>
       
       <div className="carousel-wrapper">
-        <div ref={scrollRef} className="carousel">
+        <div 
+          ref={scrollRef} 
+          className="carousel cursor-grab active:cursor-grabbing select-none"
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+        >
           {displayBooks.map((book, idx) => (
-            <div key={`${book.id}-${idx}`}>
+            <div key={`${book.id}-${idx}`} onDragStart={(e) => e.preventDefault()}>
               <BookCard book={book} compact hideRatings={hideRatings} hideRatingCount={hideRatingCount} isNewArrival={isNewArrival} />
             </div>
           ))}
