@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { SkeletonCarousel } from "@/components/SkeletonCarousel";
 import { genres } from "@/lib/mock-data";
 
 export function TopRatedCarousel() {
@@ -21,13 +22,15 @@ export function TopRatedCarousel() {
                 // Fallback and dynamic rating assignment as requested
                 const rawBooks = (data && data.length > 0) ? data : [];
                 
-                // If no data, fetch from all books
-                let finalBooks = rawBooks;
-                if (finalBooks.length === 0) {
+                let finalBooks = [...rawBooks];
+                if (finalBooks.length < 10) {
                     const { bookApi } = await import('@/services/api');
                     const res = await bookApi.getAll({ limit: 50 });
                     const allBooks = res.data.books || res.data || [];
-                    finalBooks = allBooks.filter((b: any) => !Array.isArray(b.genres || b.genre) || (b.genres || b.genre).length <= 1);
+                    const fallbackBooks = allBooks.filter((b: any) => !Array.isArray(b.genres || b.genre) || (b.genres || b.genre).length <= 1);
+                    const existingIds = new Set(finalBooks.map((b: any) => b._id));
+                    const newBooks = fallbackBooks.filter((b: any) => !existingIds.has(b._id));
+                    finalBooks = [...finalBooks, ...newBooks];
                 }
 
                 // Assign static high ratings (4.5 - 5.0)
@@ -63,11 +66,7 @@ export function TopRatedCarousel() {
     }, [books]);
 
     if (loading) {
-        return (
-            <div className="flex justify-center py-10">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-        );
+        return <SkeletonCarousel title="Top Rated Single-Genre Books" />;
     }
 
     return (
@@ -90,7 +89,7 @@ export function TopRatedCarousel() {
                             <Card className="overflow-hidden border bg-card hover:shadow-xl transition-all duration-300 relative h-full">
                                 <div className="overflow-hidden">
                                     <img
-                                        src={book.thumbnailUrl}
+                                        src={book.realCoverImage || book.thumbnailUrl}
                                         alt={book.title}
                                         className="transition-transform duration-500 group-hover:scale-110"
                                         loading="lazy"

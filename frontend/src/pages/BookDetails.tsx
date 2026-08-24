@@ -36,7 +36,7 @@ export default function BookDetails() {
           ...bookRes.data,
           id: bookRes.data?._id,
           genre: bookRes.data?.genres || [],
-          coverUrl: bookRes.data?.thumbnailUrl || "/placeholder.svg",
+          coverUrl: bookRes.data?.realCoverImage || bookRes.data?.thumbnailUrl || "/placeholder.svg",
           averageRating: bookRes.data?.rating || 0,
           ratingCount: bookRes.data?.ratingCount || 0
         };
@@ -64,7 +64,7 @@ export default function BookDetails() {
             ...b,
             id: b._id,
             genre: b.genres,
-            coverUrl: b.thumbnailUrl,
+            coverUrl: b.realCoverImage || b.thumbnailUrl,
             averageRating: b.rating,
             matchScore: Math.floor(70 + Math.random() * 25)
           })));
@@ -181,7 +181,7 @@ export default function BookDetails() {
 
             <div className="flex gap-6 text-sm text-muted-foreground">
               <span>{book.pages || 300} pages</span>
-              <span>Published {book.publishedDate || '2020'}</span>
+              {book.publishedDate && <span>Published {book.publishedDate}</span>}
             </div>
 
             {/* Rating Widget */}

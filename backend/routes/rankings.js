@@ -42,6 +42,7 @@ router.get('/most-rated', async (req, res) => {
                     title: "$bookDetails.title",
                     author: "$bookDetails.author",
                     thumbnailUrl: "$bookDetails.thumbnailUrl",
+                    realCoverImage: "$bookDetails.realCoverImage",
                     genres: "$bookDetails.genres"
                 }
             }
@@ -122,6 +123,7 @@ router.get('/top-rated', async (req, res) => {
                     title: "$bookDetails.title",
                     author: "$bookDetails.author",
                     thumbnailUrl: "$bookDetails.thumbnailUrl",
+                    realCoverImage: "$bookDetails.realCoverImage",
                     genres: "$bookDetails.genres"
                 }
             }

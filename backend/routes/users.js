@@ -38,7 +38,7 @@ router.get('/profile', auth, async (req, res) => {
 
         res.json({
             user,
-            ratings: ratings.map(r => ({
+            ratings: ratings.filter(r => r.bookId).map(r => ({
                 id: r._id,
                 rating: r.value,
                 createdAt: r.createdAt.toISOString().split('T')[0],

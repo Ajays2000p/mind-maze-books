@@ -1,15 +1,17 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Navbar } from "@/components/Navbar";
 import { GenreCarousel } from "@/components/GenreCarousel";
 import { RecommendedForYou } from "@/components/RecommendedForYou";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { BookOpen, Sparkles, Loader2 } from "lucide-react";
+import { BookOpen, Sparkles } from "lucide-react";
 import { mlApi } from "@/services/api";
 
 import { TopRatedCarousel } from "@/components/TopRatedCarousel";
 import { TopRatedMultiGenreCarousel } from "@/components/TopRatedMultiGenreCarousel";
+import { LazySection } from "@/components/LazySection";
+import { SkeletonCarousel } from "@/components/SkeletonCarousel";
 
 export default function Index() {
   const { isAuthenticated, user } = useAuth();
@@ -18,7 +20,8 @@ export default function Index() {
     mostRecommended: [],
     newArrivals: []
   });
-  const [loading, setLoading] = useState(true);
+  const [mlLoading, setMlLoading] = useState(false);
+  const hasFetchedHybrid = useRef(false);
 
   // Home Page logic: deterministic mapping
   const mapBooks = (books: any[]) => {
@@ -30,7 +33,7 @@ export default function Index() {
           ...b,
           id: b._id,
           genre: b.genres,
-          coverUrl: b.thumbnailUrl,
+          coverUrl: b.realCoverImage || b.thumbnailUrl,
           averageRating: b.rating,
           ratingCount: b.ratingCount
         });
@@ -39,40 +42,44 @@ export default function Index() {
     return Array.from(uniqueMap.values());
   };
 
-  useEffect(() => {
-    const fetchHybrid = async () => {
-      setLoading(true);
-      try {
-        const userId = (user as any)?.id || (user as any)?._id;
-        const { data } = await mlApi.getRecommendations(userId);
+  const fetchHybrid = async () => {
+    if (hasFetchedHybrid.current) return;
+    hasFetchedHybrid.current = true;
+    setMlLoading(true);
+    try {
+      const userId = (user as any)?.id || (user as any)?._id;
+      const { data } = await mlApi.getRecommendations(userId);
 
-        setRecommendations({
-          personalized: mapBooks(data.personalized || []).filter((b: any) => b.averageRating >= 3.0 && b.averageRating <= 4.0),
-          mostRecommended: mapBooks(data.mostRecommended || [])
-            .filter((book: any) => 
-              !(book.title === "Harry Potter and the Half-Blood Prince (Harry Potter, #6)" && book.author === "J.K. Rowling") &&
-              !(book.title === "Harry Potter and the Prisoner of Azkaban (Harry Potter, #3)" && book.author === "J.K. Rowling")
-            )
-            .filter((b: any) => ![
-              'Harry Potter and the Order of the Phoenix (Harry Potter, #5)',
-              'Night Watch (Discworld, #29; City Watch, #6)',
-              'The Lord of the Rings'
-            ].includes(b.title))
-            .map((b: any) => ({ ...b, averageRating: 0 }))
-            .slice(0, 10), // Limit to 10 for performance
-          newArrivals: mapBooks(data.newArrivals || [])
-            .filter((b: any) => b.title !== 'Revel')
-            .slice(0, 10) // Limit to 10 for performance
-        });
-      } catch (error) {
-        console.error("Failed to fetch hybrid recommendations", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHybrid();
-  }, [user]);
+      setRecommendations({
+        personalized: mapBooks(data.personalized || []).filter((b: any) => b.averageRating >= 3.0 && b.averageRating <= 4.0),
+        mostRecommended: mapBooks(data.mostRecommended || [])
+          .filter((book: any) => 
+            !(book.title === "Harry Potter and the Half-Blood Prince (Harry Potter, #6)" && book.author === "J.K. Rowling") &&
+            !(book.title === "Harry Potter and the Prisoner of Azkaban (Harry Potter, #3)" && book.author === "J.K. Rowling")
+          )
+          .filter((b: any) => ![
+            'Harry Potter and the Order of the Phoenix (Harry Potter, #5)',
+            'Night Watch (Discworld, #29; City Watch, #6)',
+            'The Lord of the Rings'
+          ].includes(b.title))
+          .map((b: any) => ({ ...b, averageRating: 0 }))
+          .slice(0, 10),
+        newArrivals: mapBooks(data.newArrivals || [])
+          .filter((b: any) => 
+            b.title !== 'Revel' &&
+            !(b.title === 'Lanark' && b.author === 'Alasdair Gray') &&
+            !(b.title === 'Soft Tortures' && b.author === 'P.A. Bitez')
+          )
+          .slice(0, 10)
+      });
+    } catch (error) {
+      console.error("Failed to fetch hybrid recommendations", error);
+      // Allow retry on failure
+      hasFetchedHybrid.current = false;
+    } finally {
+      setMlLoading(false);
+    }
+  };
 
   // Memoized lists for rendering stability
   const visibleMostPopular = useMemo(() => recommendations.mostRecommended, [recommendations.mostRecommended]);
@@ -106,11 +113,6 @@ export default function Index() {
             </div>
           </section>
 
-        {loading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          </div>
-        ) : (
           <div className="space-y-20">
             {/* Top User Rated Books (All Single-Genres) */}
             <TopRatedCarousel />
@@ -119,24 +121,39 @@ export default function Index() {
             <TopRatedMultiGenreCarousel />
 
             {/* Recommended for You — calls /api/books/personalized-recommendations */}
-            {user && <RecommendedForYou />}
+            {user && (
+              <LazySection rootMargin="300px">
+                <RecommendedForYou />
+              </LazySection>
+            )}
 
-            <GenreCarousel
-              title="Most Popular"
-              books={visibleMostPopular}
-              hideRatings={true}
-              hideRatingCount={true}
-            />
+            <LazySection onVisible={fetchHybrid} rootMargin="300px">
+              {mlLoading && recommendations.mostRecommended.length === 0 ? (
+                <SkeletonCarousel title="Most Popular" />
+              ) : (
+                <GenreCarousel
+                  title="Most Popular"
+                  books={visibleMostPopular}
+                  hideRatings={true}
+                  hideRatingCount={true}
+                />
+              )}
+            </LazySection>
 
             {/* New Arrivals */}
-            <GenreCarousel
-              title="New Arrivals"
-              books={visibleNewArrivals}
-              hideRatings={true}
-              isNewArrival={true}
-            />
+            <LazySection onVisible={fetchHybrid} rootMargin="300px">
+              {mlLoading && recommendations.newArrivals.length === 0 ? (
+                <SkeletonCarousel title="New Arrivals" />
+              ) : (
+                <GenreCarousel
+                  title="New Arrivals"
+                  books={visibleNewArrivals}
+                  hideRatings={true}
+                  isNewArrival={true}
+                />
+              )}
+            </LazySection>
           </div>
-          )}
         </div>
       </main>
 

@@ -9,8 +9,11 @@ const bookSchema = new mongoose.Schema({
     ratingCount: { type: Number, default: 0 },
     popularityScore: { type: Number, default: 0, set: v => Math.floor(v || 0) },
     thumbnailUrl: { type: String },
+    realCoverImage: { type: String, default: null },
+    coverMigrationAttempted: { type: Boolean, default: false },
     URL: { type: String },
-    publishedDate: { type: String },
+    publishedDate: { type: String, default: null },
+    dateMigrationAttempted: { type: Boolean, default: false },
     pages: { type: Number },
 }, { timestamps: true });
 

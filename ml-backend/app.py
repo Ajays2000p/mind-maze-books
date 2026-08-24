@@ -18,7 +18,7 @@ client = MongoClient(os.getenv("MONGODB_URI", "mongodb://localhost:27017/mind_ma
 db = client.get_database()
 
 def get_weighted_rating_books(limit=10):
-    books_cursor = db.books.find({}, {"_id": 1, "title": 1, "genres": 1, "rating": 1, "ratingCount": 1, "thumbnailUrl": 1, "author": 1})
+    books_cursor = db.books.find({}, {"_id": 1, "title": 1, "genres": 1, "rating": 1, "ratingCount": 1, "thumbnailUrl": 1, "realCoverImage": 1, "author": 1})
     books = list(books_cursor)
     if not books: return []
     

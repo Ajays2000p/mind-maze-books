@@ -5,6 +5,7 @@ export interface Book {
   genre: string[];
   description: string;
   coverUrl: string;
+  realCoverImage?: string;
   averageRating: number;
   ratingCount: number;
   publishedDate: string;
@@ -34,8 +35,8 @@ export interface Rating {
 
 const genres = [
   "Fiction", "Mystery", "Romance",
-  "Fantasy", "Thriller", "Horror", "Biography", "History",
-  "Business", "Psychology", "Adventure", "Drama"
+  "Fantasy", "Horror", "Biography", "History",
+  "Psychology", "Adventure", "Drama"
 ];
 
 import rawEnrichedData from "../data/enriched.json";
@@ -47,7 +48,7 @@ const processedBooks: Book[] = (rawEnrichedData as any[]).map((rawBook: any, ind
   author: rawBook.author || "Unknown Author",
   genre: rawBook.genres || ["Unknown"],
   description: rawBook.description || "No description available.",
-  coverUrl: rawBook.thumbnailUrl || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300&h=400&fit=crop",
+  coverUrl: rawBook.realCoverImage || rawBook.thumbnailUrl || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300&h=400&fit=crop",
   averageRating: rawBook.rating || 0,
   ratingCount: rawBook.ratingCount || 0,
   publishedDate: "2020-01-01", // Default fallback if not in JSON

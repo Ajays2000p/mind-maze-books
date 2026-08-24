@@ -88,7 +88,7 @@ router.get('/personalized-recommendations', auth, async (req, res) => {
             .slice(0, 3);
 
         // 3. Find candidate books
-        const alreadyRatedIds = userRatings.map(r => r.bookId._id);
+        const alreadyRatedIds = userRatings.filter(r => r.bookId).map(r => r.bookId._id);
         
         const recommendations = await Book.find({
             genres: { $in: topGenres },
@@ -130,6 +130,7 @@ router.get('/recommended-section', async (req, res) => {
                     title: '$bookDetails.title',
                     author: '$bookDetails.author',
                     thumbnailUrl: '$bookDetails.thumbnailUrl',
+                    realCoverImage: '$bookDetails.realCoverImage',
                     genres: '$bookDetails.genres',
                     popularityScore: '$bookDetails.popularityScore',
                     description: '$bookDetails.description',

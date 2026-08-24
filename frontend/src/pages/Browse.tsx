@@ -11,7 +11,7 @@ import { bookApi } from "@/services/api";
 import { GenreMultiSelect } from "@/components/GenreMultiSelect";
 import { useAuth } from "@/contexts/AuthContext";
 
-const hiddenStrictGenres = ['Thriller', 'History', 'Business', 'Psychology', 'Adventure'];
+const hiddenStrictGenres = ['History', 'Psychology', 'Adventure'];
 
 export default function Browse() {
   const { isAuthenticated } = useAuth();
@@ -51,7 +51,7 @@ export default function Browse() {
           ...b,
           id: b._id,
           genre: b.genres,
-          coverUrl: b.thumbnailUrl,
+          coverUrl: b.realCoverImage || b.thumbnailUrl,
           averageRating: b.rating
         }));
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,8 @@ export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const theme = "light";
   const navigate = useNavigate();
+  const location = useLocation();
+  const isBrowsePage = location.pathname === '/browse';
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -43,24 +45,12 @@ export function Navbar() {
           <span className="text-base font-semibold text-foreground hidden sm:inline">MindMazeBooks</span>
         </Link>
 
-        <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-sm">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search books or authors..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 bg-muted/50 border-0 text-sm"
-            />
-          </div>
-        </form>
+
 
         <nav className="hidden md:flex items-center gap-1">
           {!user?.isAdmin && (
             <>
-              <Button variant="ghost" size="sm" className="text-sm h-8" asChild>
-                <Link to="/">Dashboard</Link>
-              </Button>
+
               <Button variant="ghost" size="sm" className="text-sm h-8" asChild>
                 <Link to="/browse">Browse</Link>
               </Button>
@@ -107,18 +97,11 @@ export function Navbar() {
 
       {mobileOpen && (
         <div className="md:hidden border-t bg-card p-4 space-y-3">
-          <form onSubmit={handleSearch}>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9" />
-            </div>
-          </form>
+
           <div className="flex flex-col gap-1">
             {!user?.isAdmin && (
               <>
-                <Button variant="ghost" className="justify-start h-9 text-sm" asChild onClick={() => setMobileOpen(false)}>
-                  <Link to="/">Dashboard</Link>
-                </Button>
+
                 <Button variant="ghost" className="justify-start h-9 text-sm" asChild onClick={() => setMobileOpen(false)}>
                   <Link to="/browse">Browse</Link>
                 </Button>

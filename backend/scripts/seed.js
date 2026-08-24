@@ -33,7 +33,7 @@ const seedData = async () => {
             ratingCount: book.ratingCount,
             popularityScore: book.popularityScore,
             thumbnailUrl: book.thumbnailUrl,
-            publishedDate: "2020-01-01",
+            publishedDate: book.publishedDate || null,
             pages: 300,
         }));
 

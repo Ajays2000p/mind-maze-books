@@ -10,6 +10,7 @@ interface RecommendedBook {
     title: string;
     author: string;
     thumbnailUrl: string;
+    realCoverImage?: string;
     genres: string[];
     averageRating: number;
     ratingCount: number;
@@ -91,7 +92,7 @@ export function RecommendedForYou() {
                             <Card className="overflow-hidden border bg-card hover:shadow-xl transition-all duration-300 relative h-full">
                                 <div className="overflow-hidden">
                                     <img
-                                        src={book.thumbnailUrl || "/placeholder.svg"}
+                                        src={book.realCoverImage || book.thumbnailUrl || "/placeholder.svg"}
                                         alt={book.title}
                                         className="transition-transform duration-500 group-hover:scale-110"
                                         loading="lazy"
