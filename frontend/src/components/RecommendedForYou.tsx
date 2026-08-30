@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Sparkles, Loader2, Star } from "lucide-react";
@@ -17,29 +17,41 @@ interface RecommendedBook {
     popularityScore?: number;
 }
 
-export function RecommendedForYou() {
+export const RecommendedForYou = memo(function RecommendedForYou() {
     const [books, setBooks] = useState<RecommendedBook[]>([]);
     const [loading, setLoading] = useState(true);
     const [ratedBooksCount, setRatedBooksCount] = useState(0);
     const [thresholdMet, setThresholdMet] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
+    const fetchRecommendations = async () => {
+        try {
+            setLoading(true);
+            const { data } = await bookApi.getPersonalizedRecommendations();
+            setBooks(data.books || []);
+            setRatedBooksCount(data.ratedBooksCount || 0);
+            setThresholdMet(data.thresholdMet || false);
+        } catch (error) {
+            console.error("Failed to fetch personalized recommendations:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchRecommendations = async () => {
-            try {
-                setLoading(true);
-                const { data } = await bookApi.getPersonalizedRecommendations();
-                setBooks(data.books || []);
-                setRatedBooksCount(data.ratedBooksCount || 0);
-                setThresholdMet(data.thresholdMet || false);
-            } catch (error) {
-                console.error("Failed to fetch personalized recommendations:", error);
-            } finally {
-                setLoading(false);
-            }
+        fetchRecommendations();
+
+        const handleRatingUpdate = () => {
+            fetchRecommendations();
         };
 
-        fetchRecommendations();
+        window.addEventListener("ratingUpdated", handleRatingUpdate);
+        window.addEventListener("recommendationsUpdated", handleRatingUpdate);
+
+        return () => {
+            window.removeEventListener("ratingUpdated", handleRatingUpdate);
+            window.removeEventListener("recommendationsUpdated", handleRatingUpdate);
+        };
     }, []);
 
     const visibleBooks = useMemo(() => {
@@ -96,6 +108,7 @@ export function RecommendedForYou() {
                                         alt={book.title}
                                         className="transition-transform duration-500 group-hover:scale-110"
                                         loading="lazy"
+                                        decoding="async"
                                     />
                                 </div>
 
@@ -117,4 +130,4 @@ export function RecommendedForYou() {
             )}
         </section>
     );
-}
+});

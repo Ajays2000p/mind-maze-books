@@ -4,6 +4,8 @@ const auth = require('../middleware/auth');
 const Rating = require('../models/Rating');
 const Book = require('../models/Book');
 
+const { clearRankingsCache } = require('./rankings');
+
 // Submit or update a rating
 router.post('/', auth, async (req, res) => {
     try {
@@ -34,6 +36,8 @@ router.post('/', auth, async (req, res) => {
             rating: parseFloat(avg.toFixed(1)),
             ratingCount: count
         });
+
+        clearRankingsCache();
 
         res.status(200).json(rating);
     } catch (err) {

@@ -13,6 +13,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Browse from "./pages/Browse";
 import BookDetails from "./pages/BookDetails";
 import Profile from "./pages/Profile";
+import Bookshelf from "./pages/Bookshelf";
 import Analytics from "./pages/Analytics";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
@@ -75,6 +76,8 @@ const AdminRedirect = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+import GenreSelection from "./pages/GenreSelection";
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -87,11 +90,13 @@ const App = () => (
                 <Route path="/" element={<AdminRedirect><Index /></AdminRedirect>} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/genre-selection" element={<UserRoute><GenreSelection /></UserRoute>} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/browse" element={<UserRoute><Browse /></UserRoute>} />
                 <Route path="/book/:id" element={<UserRoute><BookDetails /></UserRoute>} />
                 <Route path="/profile" element={<UserRoute><Profile /></UserRoute>} />
-                <Route path="/analytics" element={<UserRoute><Analytics /></UserRoute>} />
+                <Route path="/bookshelf" element={<UserRoute><Bookshelf /></UserRoute>} />
+                <Route path="/analytics" element={<Navigate to="/" replace />} />
                 <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

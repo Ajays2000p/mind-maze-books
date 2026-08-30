@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, memo } from "react";
 import { BookCard } from "@/components/BookCard";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -12,7 +12,7 @@ interface GenreCarouselProps {
   isNewArrival?: boolean;
 }
 
-export function GenreCarousel({ title, books, hideRatings = false, hideRatingCount = false, isNewArrival = false }: GenreCarouselProps) {
+export const GenreCarousel = memo(function GenreCarousel({ title, books, hideRatings = false, hideRatingCount = false, isNewArrival = false }: GenreCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDown, setIsDown] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -87,4 +87,4 @@ export function GenreCarousel({ title, books, hideRatings = false, hideRatingCou
       </div>
     </section>
   );
-}
+});

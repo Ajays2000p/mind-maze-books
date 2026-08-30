@@ -69,16 +69,20 @@ export function Navbar() {
               <DropdownMenuContent align="end" className="w-44">
                 {!user?.isAdmin && (
                   <>
-                    <DropdownMenuItem onClick={() => navigate("/profile")}>
-                      <User size={14} className="mr-2" /> Profile
+                    <DropdownMenuItem asChild onSelect={() => navigate("/profile")}>
+                      <Link to="/profile" className="flex items-center w-full cursor-pointer">
+                        <User size={14} className="mr-2" /> Profile
+                      </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/analytics")}>
-                      <BarChart3 size={14} className="mr-2" /> Analytics
+                    <DropdownMenuItem asChild onSelect={() => navigate("/bookshelf")}>
+                      <Link to="/bookshelf" className="flex items-center w-full cursor-pointer">
+                        <BookOpen size={14} className="mr-2" /> Bookshelf
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </>
                 )}
-                <DropdownMenuItem onClick={() => { logout(); navigate("/"); }}>
+                <DropdownMenuItem onSelect={() => { logout(); navigate("/"); }}>
                   <LogOut size={14} className="mr-2" /> Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -111,7 +115,7 @@ export function Navbar() {
                       <Link to="/profile">Profile</Link>
                     </Button>
                     <Button variant="ghost" className="justify-start h-9 text-sm" asChild onClick={() => setMobileOpen(false)}>
-                      <Link to="/analytics">Analytics</Link>
+                      <Link to="/bookshelf">Bookshelf</Link>
                     </Button>
                   </>
                 )}

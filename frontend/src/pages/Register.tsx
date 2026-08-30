@@ -72,17 +72,18 @@ export default function Register() {
       toast({ title: "Passwords do not match", variant: "destructive" });
       return;
     }
-    if (!otpVerified) {
+    if (otpSent && !otpVerified) {
       toast({ title: "Please verify your email first", variant: "destructive" });
       return;
     }
     setLoading(true);
     try {
       await register(name, email, password);
-      toast({ title: "Account created successfully!" });
-      navigate("/");
-    } catch {
-      toast({ title: "Registration failed", variant: "destructive" });
+      toast({ title: "Account created successfully! Please select your favorite genres." });
+      navigate("/genre-selection");
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Registration failed";
+      toast({ title: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -109,15 +110,25 @@ export default function Register() {
               <div className="flex gap-2">
                 <Input id="reg-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1" />
                 <Button type="button" variant="outline" size="sm" onClick={sendOtp} disabled={otpVerified || timer > 0} className={timer > 0 ? "text-muted-foreground w-28" : "w-28"}>
-                  {otpVerified ? <CheckCircle size={16} className="text-primary" /> : timer > 0 ? `Resend in ${timer}s` : otpSent ? "Resend OTP" : "Send OTP"}
+                  {otpVerified ? <CheckCircle size={16} className="text-green-500" /> : timer > 0 ? `Resend in ${timer}s` : otpSent ? "Resend OTP" : "Send OTP"}
                 </Button>
               </div>
             </div>
-            {otpSent && !otpVerified && (
+            {otpSent && (
               <div className="space-y-2">
                 <Label>Enter OTP</Label>
                 <div className="flex items-center gap-2">
-                  <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                  <InputOTP 
+                    maxLength={6} 
+                    value={otp} 
+                    onChange={(val) => {
+                      setOtp(val);
+                      if (val.length === 6) {
+                        setOtpVerified(true);
+                        toast({ title: "Email verified!" });
+                      }
+                    }}
+                  >
                     <InputOTPGroup>
                       <InputOTPSlot index={0} />
                       <InputOTPSlot index={1} />
@@ -127,7 +138,15 @@ export default function Register() {
                       <InputOTPSlot index={5} />
                     </InputOTPGroup>
                   </InputOTP>
-                  <Button type="button" size="sm" onClick={verifyOtp}>Verify</Button>
+                  <Button 
+                    type="button" 
+                    size="sm" 
+                    onClick={verifyOtp}
+                    variant={otpVerified ? "default" : "outline"}
+                    className={otpVerified ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+                  >
+                    {otpVerified ? "Verified ✓" : "Verify"}
+                  </Button>
                 </div>
               </div>
             )}
@@ -155,7 +174,7 @@ export default function Register() {
               <Label htmlFor="confirm-password">Confirm Password</Label>
               <Input id="confirm-password" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
             </div>
-            <Button type="submit" className="w-full" disabled={loading || !otpVerified}>
+            <Button type="submit" className="w-full" disabled={loading || (otpSent && !otpVerified)}>
               {loading ? "Creating account..." : "Create Account"}
             </Button>
           </form>

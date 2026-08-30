@@ -5,10 +5,23 @@ const Book = require('../models/Book');
 const mongoose = require('mongoose');
 const { getStableMetrics } = require('../utils/bookHelpers');
 
+// In-Memory Server Cache for Ranking Requests
+const rankingsCache = new Map();
+
+// Helper to clear cache on rating mutation
+const clearRankingsCache = () => {
+    rankingsCache.clear();
+};
+
 // @route   GET /api/rankings/most-rated
 // @desc    Get top 10 most rated books
 router.get('/most-rated', async (req, res) => {
     try {
+        const cacheKey = 'most-rated';
+        if (rankingsCache.has(cacheKey)) {
+            return res.json(rankingsCache.get(cacheKey));
+        }
+
         const topRatedBooks = await Rating.aggregate([
             {
                 $group: {
@@ -48,6 +61,7 @@ router.get('/most-rated', async (req, res) => {
             }
         ]);
 
+        rankingsCache.set(cacheKey, topRatedBooks);
         res.json(topRatedBooks);
     } catch (error) {
         console.error('Error fetching most rated books:', error);
@@ -61,6 +75,11 @@ router.get('/top-rated', async (req, res) => {
     try {
         const { genre, multiGenre, limit } = req.query;
         const targetLimit = parseInt(limit, 10) || 25;
+        const cacheKey = `top-rated:${genre || ''}:${multiGenre || ''}:${targetLimit}`;
+
+        if (rankingsCache.has(cacheKey)) {
+            return res.json(rankingsCache.get(cacheKey));
+        }
 
         // Build filter for genre constraints
         let genreFilter = {};
@@ -72,8 +91,10 @@ router.get('/top-rated', async (req, res) => {
             genreFilter = { "genres": { $size: 1 } };
         }
 
-        // 1. Fetch matching books from Book collection
-        const books = await Book.find(genreFilter).lean();
+        // 1. Fetch matching books with field selection (projection)
+        const books = await Book.find(genreFilter)
+            .select('_id title author genres rating ratingCount thumbnailUrl realCoverImage')
+            .lean();
 
         // 2. Aggregate live user ratings from Rating collection
         const ratingAgg = await Rating.aggregate([
@@ -143,8 +164,10 @@ router.get('/top-rated', async (req, res) => {
             return b.ratingCount - a.ratingCount;
         });
 
-        // 6. Return top 10 books
-        res.json(enrichedBooks.slice(0, targetLimit));
+        // 6. Return top books
+        const result = enrichedBooks.slice(0, targetLimit);
+        rankingsCache.set(cacheKey, result);
+        res.json(result);
     } catch (error) {
         console.error('Error fetching top rated books:', error);
         res.status(500).json({ message: 'Server error' });
@@ -152,3 +175,4 @@ router.get('/top-rated', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.clearRankingsCache = clearRankingsCache;

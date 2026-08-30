@@ -81,8 +81,9 @@ export default function Index() {
     }
   };
 
+  // Reset ref if user changes
   useEffect(() => {
-    fetchHybrid();
+    hasFetchedHybrid.current = false;
   }, [user]);
 
   // Memoized lists for rendering stability
@@ -122,7 +123,9 @@ export default function Index() {
             <TopRatedCarousel />
 
             {/* Top User Rated Books (All Multi-Genres) */}
-            <TopRatedMultiGenreCarousel />
+            <LazySection rootMargin="250px">
+              <TopRatedMultiGenreCarousel />
+            </LazySection>
 
             {/* Recommended for You — calls /api/books/personalized-recommendations */}
             {user && (

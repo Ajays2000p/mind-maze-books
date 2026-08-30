@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { StarRating } from "@/components/StarRating";
 import { ConfidenceBar } from "@/components/ConfidenceBar";
-import { Loader2 } from "lucide-react";
+import { Loader2, Star } from "lucide-react";
 import { bookApi } from "@/services/api";
 import type { Book } from "@/lib/mock-data";
 
@@ -17,7 +17,7 @@ interface BookCardProps {
   isNewArrival?: boolean;
 }
 
-export function BookCard({ book, compact = false, showReason = false, showMatch = false, hideRatings = false, hideRatingCount = false, isNewArrival = false }: BookCardProps) {
+export const BookCard = memo(function BookCard({ book, compact = false, showReason = false, showMatch = false, hideRatings = false, hideRatingCount = false, isNewArrival = false }: BookCardProps) {
   const navigate = useNavigate();
   const isLoggedIn = !!localStorage.getItem('token');
   const [coverSource, setCoverSource] = useState(book.coverUrl);
@@ -59,6 +59,7 @@ export function BookCard({ book, compact = false, showReason = false, showMatch 
               onError={handleImageError}
               className="transition-transform duration-300 group-hover:scale-110"
               loading="lazy"
+              decoding="async"
             />
           )}
         </div>
@@ -66,22 +67,16 @@ export function BookCard({ book, compact = false, showReason = false, showMatch 
           <div className="space-y-1">
             <h3 className="book-title">{book.title}</h3>
             <p className="book-author">{book.author}</p>
+            {!hideRatings && (
+              <div className="flex items-center gap-1 pt-0.5">
+                <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400 shrink-0" />
+                <span className="text-xs text-muted-foreground font-medium">
+                  {(book.averageRating || 0).toFixed(1)}
+                </span>
+              </div>
+            )}
           </div>
-          {!hideRatings && (
-            isLoggedIn ? (
-              <div className="flex items-center gap-2">
-                <StarRating rating={book.averageRating} size={12} />
-                <span className="text-xs text-muted-foreground">{book.averageRating.toFixed(1)}</span>
-              </div>
-            ) : (
-              <div
-                className="text-xs text-primary hover:underline cursor-pointer"
-                onClick={(e) => { e.preventDefault(); navigate('/login'); }}
-              >
-                Sign in to rate this book
-              </div>
-            )
-          )}
+
           {!compact && !hideRatings && (
             <div className="flex flex-wrap gap-1">
               {book.genre.map((g) => (
@@ -106,4 +101,4 @@ export function BookCard({ book, compact = false, showReason = false, showMatch 
       </Card>
     </Link>
   );
-}
+});

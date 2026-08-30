@@ -19,6 +19,9 @@ const bookSchema = new mongoose.Schema({
 
 bookSchema.index({ title: 1, author: 1 }, { unique: true });
 bookSchema.index({ title: 'text', author: 'text', genres: 'text' });
+bookSchema.index({ genres: 1 });
+bookSchema.index({ ratingCount: 1 });
+bookSchema.index({ createdAt: -1 });
 
 // Middleware to cascade delete ratings when a book is deleted one-by-one
 bookSchema.pre('findOneAndDelete', async function () {

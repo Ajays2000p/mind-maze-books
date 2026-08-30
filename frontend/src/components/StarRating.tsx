@@ -11,22 +11,41 @@ interface StarRatingProps {
 
 export function StarRating({ rating, maxStars = 5, size = 16, interactive = false, onRate }: StarRatingProps) {
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="flex items-center gap-0.5 select-none">
       {Array.from({ length: maxStars }, (_, i) => {
-        const filled = i < Math.round(rating);
+        const fillPercentage = Math.max(0, Math.min(100, (rating - i) * 100));
+
         return (
-          <Star
+          <div
             key={i}
-            size={size}
-            className={cn(
-              "transition-colors",
-              filled ? "fill-primary text-primary" : "fill-none text-muted-foreground/40",
-              interactive && "cursor-pointer hover:text-primary hover:fill-primary/60"
-            )}
+            className={cn("relative inline-flex items-center justify-center", interactive && "cursor-pointer")}
             onClick={() => interactive && onRate?.(i + 1)}
-          />
+          >
+            {/* Empty star outline / background */}
+            <Star
+              size={size}
+              className={cn(
+                "transition-colors fill-none text-muted-foreground/40",
+                interactive && "hover:text-primary"
+              )}
+            />
+            {/* Partially or fully filled overlay */}
+            {fillPercentage > 0 && (
+              <div
+                className="absolute top-0 left-0 bottom-0 overflow-hidden"
+                style={{ width: `${fillPercentage}%` }}
+              >
+                <Star
+                  size={size}
+                  className="fill-primary text-primary shrink-0"
+                  style={{ minWidth: `${size}px`, width: `${size}px` }}
+                />
+              </div>
+            )}
+          </div>
         );
       })}
     </div>
   );
 }
+

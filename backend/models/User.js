@@ -6,8 +6,17 @@ const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     avatarUrl: { type: String, default: "" },
+    favoriteGenres: { type: [String], default: [] },
     isAdmin: { type: Boolean, default: false },
     isMock: { type: Boolean, default: false },
+    pendingEmail: { type: String, default: "" },
+    emailChangeOtp: { type: String, default: "" },
+    emailChangeOtpExpires: { type: Date, default: null },
+    emailChangeLastResend: { type: Date, default: null },
+    bookmarks: [{ type: String, default: [] }],
+    favorites: [{ type: String, default: [] }],
+    finishedBooks: [{ type: String, default: [] }],
+    notInterestedBooks: [{ type: String, default: [] }],
 }, { timestamps: true });
 
 userSchema.pre('save', async function () {

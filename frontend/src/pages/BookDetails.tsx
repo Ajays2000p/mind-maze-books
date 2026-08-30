@@ -1,15 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { StarRating } from "@/components/StarRating";
-import { ConfidenceBar } from "@/components/ConfidenceBar";
 import { BookCard } from "@/components/BookCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, BookOpen, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Bookmark, Heart, BookCheck, ShoppingBag, ExternalLink, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { bookApi, ratingApi, mlApi } from "@/services/api";
+import { bookApi, ratingApi, mlApi, userApi } from "@/services/api";
 import { BookMetadata } from "@/components/BookMetadata";
+
+// High-performance client-side in-memory cache for instant rendering
+const clientBookCache = new Map<string, { mappedBook: any; timestamp: number }>();
+const inFlightRequests = new Map<string, Promise<any>>();
 
 export default function BookDetails() {
   const navigate = useNavigate();
@@ -25,15 +28,104 @@ export default function BookDetails() {
   const [coverSource, setCoverSource] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasError, setHasError] = useState(false);
-
-
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
+  const [isNotInterested, setIsNotInterested] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    const fetchBookAndRating = async () => {
-      if (!id) return;
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!id) return;
+
+    // Reset state for new book ID
+    setUserRating(0);
+    setSubmitted(false);
+    setIsBookmarked(false);
+    setIsFavorite(false);
+    setIsFinished(false);
+    setIsNotInterested(false);
+    setSimilarBooks([]);
+    setHasError(false);
+
+    // 1. Instant Cache Check
+    const cachedEntry = clientBookCache.get(id);
+    const isCacheValid = cachedEntry && (Date.now() - cachedEntry.timestamp < 300000); // 5 min TTL
+
+    if (cachedEntry) {
+      setBook(cachedEntry.mappedBook);
+      setCoverSource(cachedEntry.mappedBook.coverUrl);
+      setLoading(false); // Render UI immediately from cache!
+    } else {
       setLoading(true);
+    }
+
+    // Function to load non-essential information in background (parallel & non-blocking)
+    const loadSecondaryDetails = () => {
+      // Fetch user's rating & bookmark/favorite status (only if authenticated)
+      if (localStorage.getItem('token')) {
+        ratingApi.getUserRating(id)
+          .then((ratingRes) => {
+            if (mountedRef.current && ratingRes.data && ratingRes.data.value > 0) {
+              setUserRating(ratingRes.data.value);
+              setSubmitted(true);
+            }
+          })
+          .catch((e) => console.error("Failed to fetch user rating", e));
+
+        userApi.getBookStatus(id)
+          .then((statusRes) => {
+            if (mountedRef.current && statusRes.data) {
+              setIsBookmarked(!!statusRes.data.isBookmarked);
+              setIsFavorite(!!statusRes.data.isFavorite);
+              setIsFinished(!!statusRes.data.isFinished);
+              setIsNotInterested(!!statusRes.data.isNotInterested);
+            }
+          })
+          .catch((e) => console.error("Failed to fetch book status", e));
+      }
+
+      // Fetch similar books from ML engine (independent failure)
+      mlApi.getSimilar(id)
+        .then((similarRes) => {
+          if (mountedRef.current && Array.isArray(similarRes.data)) {
+            setSimilarBooks(similarRes.data.map((b: any) => ({
+              ...b,
+              id: b._id,
+              genre: b.genres,
+              coverUrl: b.realCoverImage || b.thumbnailUrl,
+              averageRating: b.rating,
+              matchScore: Math.floor(70 + Math.random() * 25)
+            })));
+          }
+        })
+        .catch((e) => {
+          console.error("Failed to fetch similar books", e);
+          if (mountedRef.current) setSimilarBooks([]);
+        });
+    };
+
+    // 2. Fetch Essential Book Data First (Deduplicated)
+    const fetchEssentialBook = async () => {
       try {
-        const bookRes = await bookApi.getById(id);
+        let requestPromise = inFlightRequests.get(id);
+        if (!requestPromise) {
+          requestPromise = bookApi.getById(id);
+          inFlightRequests.set(id, requestPromise);
+        }
+
+        const bookRes = await requestPromise;
+        inFlightRequests.delete(id);
+
+        if (!mountedRef.current) return;
+
         const mappedBook = {
           ...bookRes.data,
           id: bookRes.data?._id,
@@ -43,45 +135,30 @@ export default function BookDetails() {
           ratingCount: bookRes.data?.ratingCount || 0
         };
 
+        clientBookCache.set(id, { mappedBook, timestamp: Date.now() });
+
         setBook(mappedBook);
         setCoverSource(mappedBook.coverUrl);
+        setLoading(false); // Essential data loaded! Turn off spinner immediately.
 
-        // Fetch user's rating (only if authenticated)
-        if (localStorage.getItem('token')) {
-          try {
-            const ratingRes = await ratingApi.getUserRating(id);
-            if (ratingRes.data && ratingRes.data.value > 0) {
-              setUserRating(ratingRes.data.value);
-              setSubmitted(true);
-            }
-          } catch (e) {
-            console.error("Failed to fetch user rating", e);
-          }
-        }
-
-        // Fetch similar books from ML engine (independent failure)
-        try {
-          const similarRes = await mlApi.getSimilar(id);
-          setSimilarBooks(similarRes.data.map((b: any) => ({
-            ...b,
-            id: b._id,
-            genre: b.genres,
-            coverUrl: b.realCoverImage || b.thumbnailUrl,
-            averageRating: b.rating,
-            matchScore: Math.floor(70 + Math.random() * 25)
-          })));
-        } catch (e) {
-          console.error("Failed to fetch similar books", e);
-          setSimilarBooks([]);
-        }
+        // Trigger secondary non-blocking fetches after essential data is shown
+        loadSecondaryDetails();
       } catch (error) {
+        inFlightRequests.delete(id);
+        if (!mountedRef.current) return;
+
+        console.error("Error loading book details:", error);
         toast({ title: "Failed to load book details", variant: "destructive" });
-      } finally {
-        setLoading(false);
+        setLoading(false); // Ensure spinner is removed on error
       }
     };
 
-    fetchBookAndRating();
+    if (cachedEntry && isCacheValid) {
+      // If we used fresh cache, just load secondary details in background
+      loadSecondaryDetails();
+    } else {
+      fetchEssentialBook();
+    }
   }, [id]);
 
   const submitRating = async () => {
@@ -90,17 +167,23 @@ export default function BookDetails() {
       await ratingApi.submit(id!, userRating);
       setSubmitted(true);
       window.dispatchEvent(new CustomEvent("ratingUpdated", { detail: { bookId: id, rating: userRating } }));
+      window.dispatchEvent(new CustomEvent("recommendationsUpdated"));
       
-      // Refetch latest book details from MongoDB so ratingCount and averageRating update immediately
+      // Invalidate cache for this book ID
       if (id) {
+        clientBookCache.delete(id);
         const updatedRes = await bookApi.getById(id);
-        if (updatedRes.data) {
-          setBook((prev: any) => ({
-            ...prev,
+        if (updatedRes.data && mountedRef.current) {
+          const updatedMapped = {
             ...updatedRes.data,
+            id: updatedRes.data._id,
+            genre: updatedRes.data.genres || [],
+            coverUrl: updatedRes.data.realCoverImage || updatedRes.data.thumbnailUrl || "/placeholder.svg",
             averageRating: updatedRes.data.rating || 0,
             ratingCount: updatedRes.data.ratingCount || 0
-          }));
+          };
+          clientBookCache.set(id, { mappedBook: updatedMapped, timestamp: Date.now() });
+          setBook(updatedMapped);
         }
       }
 
@@ -110,20 +193,116 @@ export default function BookDetails() {
     }
   };
 
+  const handleToggleBookmark = async () => {
+    if (!localStorage.getItem('token')) {
+      toast({ title: "Please sign in to bookmark books", variant: "destructive" });
+      return;
+    }
+    const previous = isBookmarked;
+    setIsBookmarked(!previous);
+    try {
+      setActionLoading(true);
+      const res = await userApi.toggleBookmark(id!);
+      setIsBookmarked(res.data.isBookmarked);
+      toast({ title: res.data.message || (res.data.isBookmarked ? "Bookmarked!" : "Removed bookmark") });
+    } catch (error) {
+      setIsBookmarked(previous);
+      toast({ title: "Failed to update bookmark", variant: "destructive" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!localStorage.getItem('token')) {
+      toast({ title: "Please sign in to add favorites", variant: "destructive" });
+      return;
+    }
+    const previous = isFavorite;
+    setIsFavorite(!previous);
+    try {
+      setActionLoading(true);
+      const res = await userApi.toggleFavorite(id!);
+      setIsFavorite(res.data.isFavorite);
+      toast({ title: res.data.message || (res.data.isFavorite ? "Added to favorites!" : "Removed favorite") });
+    } catch (error) {
+      setIsFavorite(previous);
+      toast({ title: "Failed to update favorite", variant: "destructive" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleToggleFinished = async () => {
+    if (!localStorage.getItem('token')) {
+      toast({ title: "Please sign in to mark books as finished", variant: "destructive" });
+      return;
+    }
+    const previousFinished = isFinished;
+    const previousBookmarked = isBookmarked;
+
+    const nextFinished = !previousFinished;
+    setIsFinished(nextFinished);
+    if (nextFinished && previousBookmarked) {
+      setIsBookmarked(false); // Automatically remove bookmark visually if marking finished
+    }
+
+    try {
+      setActionLoading(true);
+      const res = await userApi.toggleFinished(id!);
+      setIsFinished(res.data.isFinished);
+      if (res.data.isBookmarked !== undefined) {
+        setIsBookmarked(res.data.isBookmarked);
+      }
+      toast({ title: res.data.message || (res.data.isFinished ? "Marked as finished!" : "Removed from finished") });
+    } catch (error) {
+      setIsFinished(previousFinished);
+      setIsBookmarked(previousBookmarked);
+      toast({ title: "Failed to update finished status", variant: "destructive" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleToggleNotInterested = async () => {
+    if (!localStorage.getItem('token')) {
+      toast({ title: "Please sign in to set preferences", variant: "destructive" });
+      return;
+    }
+    const previous = isNotInterested;
+    const nextNotInterested = !previous;
+    setIsNotInterested(nextNotInterested);
+
+    try {
+      setActionLoading(true);
+      const res = await userApi.toggleNotInterested(id!);
+      setIsNotInterested(res.data.isNotInterested);
+      window.dispatchEvent(new CustomEvent("recommendationsUpdated"));
+      toast({
+        title: res.data.message || (res.data.isNotInterested ? "Marked as Not Interested" : "Removed from Not Interested")
+      });
+    } catch (error) {
+      setIsNotInterested(previous);
+      toast({ title: "Failed to update preference", variant: "destructive" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleImageError = async () => {
     if (hasError || isGenerating) return; // Prevent infinite loops
     setHasError(true);
     setIsGenerating(true);
     try {
       const response = await bookApi.generateCover(book.id);
-      if (response.data && response.data.thumbnailUrl) {
+      if (response.data && response.data.thumbnailUrl && mountedRef.current) {
         setCoverSource(response.data.thumbnailUrl);
         setHasError(false);
       }
     } catch (e) {
       console.error("Failed to generate cover fallback for", book.id);
     } finally {
-      setIsGenerating(false);
+      if (mountedRef.current) setIsGenerating(false);
     }
   };
 
@@ -164,9 +343,9 @@ export default function BookDetails() {
 
         {/* Two-column layout */}
         <div className="grid md:grid-cols-[280px_1fr] gap-8">
-          {/* Left: Cover */}
-          <div className="space-y-4">
-            <div className="w-full max-w-[280px] rounded-lg shadow-sm overflow-hidden aspect-[3/4] bg-muted relative">
+          {/* Left Column: Cover & Centered Action Group */}
+          <div className="flex flex-col items-center w-full max-w-[280px] mx-auto sm:mx-0 space-y-3">
+            <div className="w-full rounded-lg shadow-sm overflow-hidden aspect-[3/4] bg-muted relative">
               {isGenerating ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground animate-pulse p-4 text-center">
                   <Loader2 className="w-8 h-8 mb-3 animate-spin text-primary" />
@@ -180,6 +359,69 @@ export default function BookDetails() {
                   className="w-full h-full object-cover" 
                 />
               )}
+            </div>
+
+            {/* Balanced Action Group: 3 Icons under cover */}
+            <div className="flex items-center justify-center gap-3.5 w-full pt-1">
+              <Button
+                variant={isBookmarked ? "default" : "outline"}
+                size="icon"
+                onClick={handleToggleBookmark}
+                disabled={actionLoading}
+                title={isBookmarked ? "Remove Bookmark" : "Bookmark"}
+                className={`h-10 w-10 rounded-full shadow-sm transition-all duration-200 hover:scale-105 ${
+                  isBookmarked 
+                    ? "bg-primary text-primary-foreground shadow-md" 
+                    : "border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                }`}
+              >
+                <Bookmark className={`h-5 w-5 ${isBookmarked ? "fill-current" : ""}`} />
+              </Button>
+
+              <Button
+                variant={isFavorite ? "default" : "outline"}
+                size="icon"
+                onClick={handleToggleFavorite}
+                disabled={actionLoading}
+                title={isFavorite ? "Remove Favorite" : "Favorite"}
+                className={`h-10 w-10 rounded-full shadow-sm transition-all duration-200 hover:scale-105 ${
+                  isFavorite 
+                    ? "bg-rose-600 hover:bg-rose-700 text-white border-rose-600 shadow-md" 
+                    : "border-input bg-background hover:bg-accent hover:text-rose-500"
+                }`}
+              >
+                <Heart className={`h-5 w-5 ${isFavorite ? "fill-current text-white" : ""}`} />
+              </Button>
+
+              <Button
+                variant={isFinished ? "default" : "outline"}
+                size="icon"
+                onClick={handleToggleFinished}
+                disabled={actionLoading}
+                title={isFinished ? "Marked as Finished" : "Finished"}
+                className={`h-10 w-10 rounded-full shadow-sm transition-all duration-200 hover:scale-105 ${
+                  isFinished 
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-md" 
+                    : "border-input bg-background hover:bg-accent hover:text-emerald-500"
+                }`}
+              >
+                <BookCheck className="h-5 w-5" />
+              </Button>
+
+              <Button
+                variant={isNotInterested ? "default" : "outline"}
+                size="icon"
+                onClick={handleToggleNotInterested}
+                disabled={actionLoading}
+                title={isNotInterested ? "Not Interested (Excluded from Recommended for You)" : "Not Interested"}
+                className={`h-10 w-10 rounded-full shadow-sm transition-all duration-200 hover:scale-105 ${
+                  isNotInterested 
+                    ? "bg-slate-700 hover:bg-slate-800 text-white border-slate-700 shadow-md" 
+                    : "border-input bg-background hover:bg-accent hover:text-slate-600"
+                }`}
+              >
+                <EyeOff className="h-5 w-5" />
+              </Button>
             </div>
           </div>
 
@@ -210,6 +452,34 @@ export default function BookDetails() {
               {book.publishedDate && <span>Published {book.publishedDate}</span>}
             </div>
 
+            {/* Buy this book option */}
+            {(() => {
+              const url = (book.URL && typeof book.URL === 'string' && book.URL.trim().startsWith('http'))
+                ? book.URL.trim()
+                : (book.title || book.author)
+                  ? `https://www.google.com/search?tbm=bks&q=${encodeURIComponent(`${book.title || ''} ${book.author || ''}`.trim())}`
+                  : null;
+              if (!url) return null;
+              return (
+                <div className="pt-1">
+                  <Button
+                    asChild
+                    className="w-full sm:w-auto px-6 h-10 gap-2 font-medium shadow-sm transition-all duration-200"
+                  >
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ShoppingBag size={18} />
+                      Find this book
+                      <ExternalLink size={14} className="ml-1 opacity-70" />
+                    </a>
+                  </Button>
+                </div>
+              );
+            })()}
+
             {/* Rating Widget */}
             <Card className="border">
               <CardContent className="p-4 space-y-3">
@@ -230,9 +500,6 @@ export default function BookDetails() {
                 )}
               </CardContent>
             </Card>
-
-
-
           </div>
         </div>
 
